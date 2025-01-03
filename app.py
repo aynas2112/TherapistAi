@@ -60,5 +60,3 @@ if st.session_state.chat_history:
         st.divider()
 else:
     st.write("Start a conversation to see the chat history here!")
-
-st.caption(f"Powered by Google's Gemini LLM - Your therapist is named **{st.session_state.bot_name}**.")
