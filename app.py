@@ -30,14 +30,14 @@ def getGeminiRes(user_input):
         return f"Error: {e}"
 
 def speak(text):
-    tts=gTTS(text=text, lang='en')
+    tts = gTTS(text=text, lang='en')
     tts.save("res.mp3")
-    audio=AudioSegment.from_file("res.mp3")
+    audio = AudioSegment.from_file("res.mp3")
     play(audio)
 
-def listen():
+def listen(selected_device_id):
     recog = sr.Recognizer()
-    with sr.Microphone() as source:
+    with sr.Microphone(device_index=selected_device_id) as source:
         st.info("Listening...")
         try:
             audio = recog.listen(source, timeout=5)
@@ -48,13 +48,28 @@ def listen():
         except sr.RequestError as e:
             return f"Sorry, an error occurred: {e}"
 
-# Request microphone access through JavaScript
+# Request microphone access through JavaScript for browser
 def request_microphone_access():
     js_code = """
     <script>
-        navigator.mediaDevices.getUserMedia({audio: true})
+        navigator.mediaDevices.getUserMedia({ audio: true })
         .then(function(stream) {
             console.log("Microphone access granted");
+            const devices = navigator.mediaDevices.enumerateDevices();
+            devices.then(function(devicesList) {
+                const audioDevices = devicesList.filter(device => device.kind === 'audioinput');
+                const deviceSelect = document.createElement("select");
+                audioDevices.forEach(device => {
+                    const option = document.createElement("option");
+                    option.value = device.deviceId;
+                    option.text = device.label || `Device ${device.deviceId}`;
+                    deviceSelect.appendChild(option);
+                });
+                document.body.appendChild(deviceSelect);
+                deviceSelect.addEventListener("change", function(event) {
+                    window.parent.postMessage({ selectedDeviceId: event.target.value }, "*");
+                });
+            });
         })
         .catch(function(err) {
             alert("Please allow microphone access in your browser settings.");
@@ -73,6 +88,10 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "bot_name" not in st.session_state:
     st.session_state.bot_name = "TherapistAI"
+
+# Initialize a placeholder for selected microphone device ID
+if "selected_device_id" not in st.session_state:
+    st.session_state.selected_device_id = None
 
 # Request microphone access on load
 request_microphone_access()
@@ -94,11 +113,16 @@ if input_method == "Type":
             st.session_state.chat_history.append({"user": user_input, "bot": bot_response})
 elif input_method == "Voice":
     if st.button("Speak"):
-        user_input = listen()
-        if user_input:
-            bot_response = getGeminiRes(user_input)
-            st.session_state.chat_history.append({"user": user_input, "bot": bot_response})
-            speak(bot_response)
+        # Check if a device has been selected
+        if st.session_state.selected_device_id:
+            selected_device_id = st.session_state.selected_device_id
+            user_input = listen(selected_device_id)
+            if user_input:
+                bot_response = getGeminiRes(user_input)
+                st.session_state.chat_history.append({"user": user_input, "bot": bot_response})
+                speak(bot_response)
+        else:
+            st.warning("Please select a microphone device.")
 
 # Display chat history
 st.subheader("Chat History")
@@ -109,3 +133,20 @@ if st.session_state.chat_history:
         st.divider()
 else:
     st.write("Start a conversation to see the chat history here!")
+
+# Handle message from JavaScript
+components.html("""
+<script>
+    window.addEventListener("message", function(event) {
+        if (event.data.selectedDeviceId) {
+            const deviceId = event.data.selectedDeviceId;
+            const streamlitScript = `
+                <script>
+                    window.parent.postMessage({selectedDeviceId: '${deviceId}'}, "*");
+                </script>
+            `;
+            document.body.appendChild(streamlitScript);
+        }
+    });
+</script>
+""")
