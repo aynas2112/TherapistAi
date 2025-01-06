@@ -2,8 +2,8 @@ streamlit
 python-dotenv
 google-generativeai
 gTTS
-SpeechRecognition
+SpeechRecognition==3.10.1
 pydub
-pyaudio
+PyAudio==0.2.11
 ffmpeg-python
 pipwin
