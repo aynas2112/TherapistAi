@@ -29,9 +29,9 @@ def getGeminiRes(user_input):
 
 # Function to speak text aloud
 def speak(text):
-    tts=gTTS(text=text, lang='en')
+    tts = gTTS(text=text, lang='en')
     tts.save("res.mp3")
-    audio=AudioSegment.from_file("res.mp3")
+    audio = AudioSegment.from_file("res.mp3")
     play(audio)
 
 # Function to listen to microphone input
@@ -83,6 +83,23 @@ def request_microphone_access():
     </script>
     """
     components.html(js_code)
+
+# Handle the message from JavaScript containing the selected deviceId
+components.html("""
+<script>
+    window.addEventListener("message", function(event) {
+        if (event.data.deviceId) {
+            const deviceId = event.data.deviceId;
+            const streamlitScript = `
+                <script>
+                    window.parent.postMessage({selectedDeviceId: '${deviceId}'}, "*");
+                </script>
+            `;
+            document.body.appendChild(streamlitScript);
+        }
+    });
+</script>
+""")
 
 # Streamlit app configuration
 st.set_page_config(page_title="TherapistAI", page_icon=":robot:")
@@ -141,19 +158,7 @@ if st.session_state.chat_history:
 else:
     st.write("Start a conversation to see the chat history here!")
 
-# Handle message from JavaScript
-components.html("""
-<script>
-    window.addEventListener("message", function(event) {
-        if (event.data.deviceId) {
-            const deviceId = event.data.deviceId;
-            const streamlitScript = `
-                <script>
-                    window.parent.postMessage({selectedDeviceId: '${deviceId}'}, "*");
-                </script>
-            `;
-            document.body.appendChild(streamlitScript);
-        }
-    });
-</script>
-""")
+# Handle message from JavaScript and update the session state
+if "selected_device_id" in st.session_state:
+    selected_device_id = st.session_state.selected_device_id
+    st.write(f"Selected Device ID: {selected_device_id}")
