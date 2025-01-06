@@ -67,7 +67,8 @@ def request_microphone_access():
                 });
                 document.body.appendChild(deviceSelect);
                 deviceSelect.addEventListener("change", function(event) {
-                    window.parent.postMessage({ selectedDeviceId: event.target.value }, "*");
+                    const selectedDeviceId = event.target.value;
+                    window.parent.postMessage({ selectedDeviceId: selectedDeviceId }, "*");
                 });
             });
         })
@@ -134,18 +135,13 @@ if st.session_state.chat_history:
 else:
     st.write("Start a conversation to see the chat history here!")
 
-# Handle message from JavaScript
+# Handle message from JavaScript and update the selected microphone device ID
 components.html("""
 <script>
     window.addEventListener("message", function(event) {
         if (event.data.selectedDeviceId) {
             const deviceId = event.data.selectedDeviceId;
-            const streamlitScript = `
-                <script>
-                    window.parent.postMessage({selectedDeviceId: '${deviceId}'}, "*");
-                </script>
-            `;
-            document.body.appendChild(streamlitScript);
+            window.parent.postMessage({selectedDeviceId: deviceId}, "*");
         }
     });
 </script>
