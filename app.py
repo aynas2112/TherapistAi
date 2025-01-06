@@ -12,10 +12,8 @@ import streamlit.components.v1 as components
 load_dotenv()
 genAI.configure(api_key=os.getenv("GEMINI_API"))
 
+# Function to get response from Gemini model
 def getGeminiRes(user_input):
-    """
-    Generate a response from the Gemini model with a specialized prompt.
-    """
     try:
         prompt = (
             "You are a compassionate and understanding therapist. "
@@ -29,15 +27,17 @@ def getGeminiRes(user_input):
     except Exception as e:
         return f"Error: {e}"
 
+# Function to speak text aloud
 def speak(text):
     tts=gTTS(text=text, lang='en')
     tts.save("res.mp3")
     audio=AudioSegment.from_file("res.mp3")
     play(audio)
 
-def listen():
+# Function to listen to microphone input
+def listen(selected_device_id):
     recog = sr.Recognizer()
-    with sr.Microphone() as source:
+    with sr.Microphone(device_index=selected_device_id) as source:
         st.info("Listening...")
         try:
             audio = recog.listen(source, timeout=5)
@@ -48,17 +48,36 @@ def listen():
         except sr.RequestError as e:
             return f"Sorry, an error occurred: {e}"
 
-# Request microphone access through JavaScript
+# JavaScript to request microphone access and display available devices
 def request_microphone_access():
     js_code = """
     <script>
-        navigator.mediaDevices.getUserMedia({audio: true})
-        .then(function(stream) {
-            console.log("Microphone access granted");
-        })
-        .catch(function(err) {
-            alert("Please allow microphone access in your browser settings.");
-        });
+        let selectedDeviceId = null;
+        
+        navigator.mediaDevices.enumerateDevices()
+            .then(devices => {
+                const audioDevices = devices.filter(device => device.kind === 'audioinput');
+                if (audioDevices.length > 0) {
+                    const deviceSelect = document.createElement('select');
+                    audioDevices.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.text = device.label || `Device ${device.deviceId}`;
+                        deviceSelect.appendChild(option);
+                    });
+                    document.body.appendChild(deviceSelect);
+                    
+                    deviceSelect.addEventListener('change', function(event) {
+                        selectedDeviceId = event.target.value;
+                        console.log('Selected device ID:', selectedDeviceId);
+                    });
+                } else {
+                    alert('No audio input devices found.');
+                }
+            })
+            .catch(err => {
+                console.error('Error accessing devices:', err);
+            });
     </script>
     """
     components.html(js_code)
@@ -93,8 +112,11 @@ if input_method == "Type":
             bot_response = getGeminiRes(user_input)
             st.session_state.chat_history.append({"user": user_input, "bot": bot_response})
 elif input_method == "Voice":
+    # Select input device (this part should ideally update after user selects a device)
     if st.button("Speak"):
-        user_input = listen()
+        # Get the selected device ID from JavaScript (in production, a callback could be used)
+        selected_device_id = 'default_device_id'  # Replace with the actual device ID retrieved by JS
+        user_input = listen(selected_device_id)
         if user_input:
             bot_response = getGeminiRes(user_input)
             st.session_state.chat_history.append({"user": user_input, "bot": bot_response})
