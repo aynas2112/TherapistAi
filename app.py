@@ -70,6 +70,8 @@ def request_microphone_access():
                     deviceSelect.addEventListener('change', function(event) {
                         selectedDeviceId = event.target.value;
                         console.log('Selected device ID:', selectedDeviceId);
+                        // Send the selected device ID back to Streamlit
+                        window.parent.postMessage({deviceId: selectedDeviceId}, "*");
                     });
                 } else {
                     alert('No audio input devices found.');
@@ -93,6 +95,10 @@ if "chat_history" not in st.session_state:
 if "bot_name" not in st.session_state:
     st.session_state.bot_name = "TherapistAI"
 
+# Initialize a placeholder for selected microphone device ID
+if "selected_device_id" not in st.session_state:
+    st.session_state.selected_device_id = None
+
 # Request microphone access on load
 request_microphone_access()
 
@@ -103,24 +109,27 @@ bot_name = st.text_input("Name your AI Therapist:", key="bot_name_input", placeh
 if bot_name:
     st.session_state.bot_name = bot_name
 
+# Input method selection
 input_method = st.radio("How would you like to interact?", ["Type", "Voice"])
+
 if input_method == "Type":
     user_input = st.text_input("What's on your mind today?", key="user_input", placeholder="Type your thoughts or concerns here...")
-    # Handle message sending
     if st.button("Send"):
         if user_input:
             bot_response = getGeminiRes(user_input)
             st.session_state.chat_history.append({"user": user_input, "bot": bot_response})
 elif input_method == "Voice":
-    # Select input device (this part should ideally update after user selects a device)
     if st.button("Speak"):
-        # Get the selected device ID from JavaScript (in production, a callback could be used)
-        selected_device_id = 'default_device_id'  # Replace with the actual device ID retrieved by JS
-        user_input = listen(selected_device_id)
-        if user_input:
-            bot_response = getGeminiRes(user_input)
-            st.session_state.chat_history.append({"user": user_input, "bot": bot_response})
-            speak(bot_response)
+        # Check if a device has been selected
+        if st.session_state.selected_device_id:
+            selected_device_id = st.session_state.selected_device_id
+            user_input = listen(selected_device_id)
+            if user_input:
+                bot_response = getGeminiRes(user_input)
+                st.session_state.chat_history.append({"user": user_input, "bot": bot_response})
+                speak(bot_response)
+        else:
+            st.warning("Please select a microphone device.")
 
 # Display chat history
 st.subheader("Chat History")
@@ -131,3 +140,20 @@ if st.session_state.chat_history:
         st.divider()
 else:
     st.write("Start a conversation to see the chat history here!")
+
+# Handle message from JavaScript
+components.html("""
+<script>
+    window.addEventListener("message", function(event) {
+        if (event.data.deviceId) {
+            const deviceId = event.data.deviceId;
+            const streamlitScript = `
+                <script>
+                    window.parent.postMessage({selectedDeviceId: '${deviceId}'}, "*");
+                </script>
+            `;
+            document.body.appendChild(streamlitScript);
+        }
+    });
+</script>
+""")
