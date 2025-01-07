@@ -1,0 +1,20 @@
+{
+  "name": "therapistai",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aynas2112/TherapistAi.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aynas2112/TherapistAi/issues"
+  },
+  "homepage": "https://github.com/aynas2112/TherapistAi#readme"
+}
