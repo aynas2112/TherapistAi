@@ -5,5 +5,4 @@ gTTS
 SpeechRecognition==3.10.1
 pydub
 PyAudio==0.2.11
-pipwin
 streamlit-mic-recorder
