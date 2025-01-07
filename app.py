@@ -3,8 +3,6 @@ import streamlit as st
 import streamlit.components.v1 as components
 from dotenv import load_dotenv
 from gtts import gTTS
-from pydub import AudioSegment
-from pydub.playback import play
 from streamlit_mic_recorder import speech_to_text, mic_recorder
 import google.generativeai as genAI
 
@@ -32,12 +30,16 @@ def getGeminiRes(user_input):
 
 def speak(text):
     """
-    Convert text to speech and play it.
+    Convert text to speech and provide a download link or play it in the browser.
     """
     tts = gTTS(text=text, lang="en")
     tts.save("response.mp3")
-    audio = AudioSegment.from_file("response.mp3")
-    play(audio)
+
+    # Embed the audio player in the app for playback in the browser
+    st.audio("response.mp3", format="audio/mp3")
+
+    # Alternatively, provide a download link for the user to download the mp3
+    st.markdown(f'<a href="response.mp3" download>Click here to download your response audio</a>', unsafe_allow_html=True)
 
 # Streamlit App Configuration
 st.set_page_config(page_title="TherapistAI", page_icon=":robot:")
